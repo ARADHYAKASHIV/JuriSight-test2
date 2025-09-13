@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: jurisight-postgres-dev
+    environment:
+      POSTGRES_DB: jurisight_dev
+      POSTGRES_USER: jurisight_user
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - jurisight-network
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: jurisight-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - jurisight-network
+    command: redis-server --appendonly yes
+
+  # Backend API service
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend.dev
+    container_name: jurisight-backend-dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://jurisight_user:dev_password@postgres:5432/jurisight_dev
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      JWT_REFRESH_SECRET: dev-jwt-refresh-secret-change-in-production
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+      - uploads_dev:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - jurisight-network
+    command: npm run dev
+
+  # Frontend React application
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend.dev
+    container_name: jurisight-frontend-dev
+    environment:
+      VITE_API_URL: http://localhost:3001
+      VITE_WS_URL: ws://localhost:3001
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - jurisight-network
+    command: npm run dev
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+  uploads_dev:
+    driver: local
+
+networks:
+  jurisight-network:
+    driver: bridge
