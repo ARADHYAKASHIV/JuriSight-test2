@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .legal-document {
+    @apply prose prose-slate max-w-none dark:prose-invert;
+  }
+  
+  .legal-document h1 {
+    @apply text-2xl font-bold mb-4;
+  }
+  
+  .legal-document h2 {
+    @apply text-xl font-semibold mb-3;
+  }
+  
+  .legal-document h3 {
+    @apply text-lg font-medium mb-2;
+  }
+  
+  .legal-document p {
+    @apply mb-4 leading-relaxed;
+  }
+  
+  .legal-document ul, .legal-document ol {
+    @apply mb-4 pl-6;
+  }
+  
+  .legal-document li {
+    @apply mb-1;
+  }
+  
+  .chat-message {
+    @apply rounded-lg p-4 mb-4 max-w-[80%];
+  }
+  
+  .chat-message.user {
+    @apply bg-primary text-primary-foreground ml-auto;
+  }
+  
+  .chat-message.assistant {
+    @apply bg-muted text-muted-foreground mr-auto;
+  }
+  
+  .document-highlight {
+    @apply bg-yellow-200 dark:bg-yellow-800 px-1 py-0.5 rounded;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .document-highlight:hover {
+    @apply bg-yellow-300 dark:bg-yellow-700;
+  }
+  
+  .comparison-added {
+    @apply bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200;
+  }
+  
+  .comparison-removed {
+    @apply bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200;
+  }
+  
+  .comparison-modified {
+    @apply bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .glass {
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .dark .glass {
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}

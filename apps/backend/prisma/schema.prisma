@@ -1,0 +1,277 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  ANALYST
+  VIEWER
+}
+
+enum WorkspaceMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum DocumentCategory {
+  CONTRACT
+  LEGAL_BRIEF
+  COMPLIANCE
+  PATENT
+  LITIGATION
+  OTHER
+}
+
+enum ChatMessageType {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum UserActivityType {
+  DOCUMENT_UPLOAD
+  DOCUMENT_VIEW
+  DOCUMENT_ANALYZE
+  CHAT_SESSION
+  DOCUMENT_COMPARE
+  WORKSPACE_JOIN
+  LOGIN
+  LOGOUT
+}
+
+enum AnnotationType {
+  HIGHLIGHT
+  NOTE
+  QUESTION
+  IMPORTANT
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  role        UserRole @default(ANALYST)
+  preferences Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  workspaces            WorkspaceMember[]
+  uploadedDocuments     Document[]
+  chatSessions          ChatSession[]
+  annotations           DocumentAnnotation[]
+  activities            UserActivity[]
+  performedComparisons  DocumentComparison[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  settings  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner      User               @relation(fields: [ownerId], references: [id], map: "workspace_owner")
+  members    WorkspaceMember[]
+  documents  Document[]
+  templates  DocumentTemplate[]
+  activities UserActivity[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String              @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceMemberRole
+  permissions Json?
+  joinedAt    DateTime            @default(now())
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+model Document {
+  id              String            @id @default(cuid())
+  workspaceId     String
+  uploadedById    String
+  title           String
+  originalName    String
+  mimeType        String
+  category        DocumentCategory?
+  tags            Json?
+  content         String?
+  metadata        Json?
+  confidenceScore Float?
+  processingTime  Int?
+  hash            String            @unique
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  workspace    Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  uploadedBy   User                 @relation(fields: [uploadedById], references: [id])
+  chatSessions ChatSession[]
+  annotations  DocumentAnnotation[]
+  comparisons1 DocumentComparison[] @relation("Document1")
+  comparisons2 DocumentComparison[] @relation("Document2")
+  embeddings   DocumentEmbedding[]
+
+  @@index([workspaceId])
+  @@index([uploadedById])
+  @@index([category])
+  @@index([createdAt])
+  @@map("documents")
+}
+
+model DocumentTemplate {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?
+  data        Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("document_templates")
+}
+
+model DocumentEmbedding {
+  id         String                     @id @default(cuid())
+  documentId String
+  chunkIndex Int
+  content    String
+  embedding  Unsupported("vector(1536)")
+  metadata   Json?
+  createdAt  DateTime                   @default(now())
+
+  // Relations
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@map("document_embeddings")
+}
+
+model DocumentComparison {
+  id              String   @id @default(cuid())
+  doc1Id          String
+  doc2Id          String
+  results         Json
+  similarityScore Float
+  performedById   String
+  createdAt       DateTime @default(now())
+
+  // Relations
+  document1   Document @relation("Document1", fields: [doc1Id], references: [id], onDelete: Cascade)
+  document2   Document @relation("Document2", fields: [doc2Id], references: [id], onDelete: Cascade)
+  performedBy User     @relation(fields: [performedById], references: [id])
+
+  @@index([doc1Id])
+  @@index([doc2Id])
+  @@index([performedById])
+  @@map("document_comparisons")
+}
+
+model ChatSession {
+  id         String   @id @default(cuid())
+  documentId String
+  userId     String
+  title      String
+  context    Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  document Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id])
+  messages ChatMessage[]
+
+  @@index([documentId])
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id              String          @id @default(cuid())
+  sessionId       String
+  type            ChatMessageType
+  content         String
+  metadata        Json?
+  citations       Json?
+  confidenceScore Float?
+  createdAt       DateTime        @default(now())
+
+  // Relations
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
+model DocumentAnnotation {
+  id         String         @id @default(cuid())
+  documentId String
+  userId     String
+  position   Json
+  content    String
+  type       AnnotationType
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  // Relations
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([documentId])
+  @@index([userId])
+  @@map("document_annotations")
+}
+
+model UserActivity {
+  id           String           @id @default(cuid())
+  userId       String
+  workspaceId  String?
+  type         UserActivityType
+  entityType   String?
+  entityId     String?
+  metadata     Json?
+  createdAt    DateTime         @default(now())
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id])
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([createdAt])
+  @@map("user_activities")
+}

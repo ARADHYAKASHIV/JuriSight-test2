@@ -61,9 +61,6 @@ export const UserSchema = z.object({
   updatedAt: z.date()
 });
 
-// Public User Schema (without password)
-export const PublicUserSchema = UserSchema.omit({ password: true });
-
 export const CreateUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -86,7 +83,7 @@ export const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   confirmPassword: z.string().min(6)
-}).refine((data) => data.password === data.confirmPassword, {
+}).refine((data: any) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"]
 });
@@ -233,7 +230,6 @@ export const AnalyticsMetricsSchema = z.object({
 
 // ===== TYPE EXPORTS =====
 export type User = z.infer<typeof UserSchema>;
-export type PublicUser = z.infer<typeof PublicUserSchema>;
 export type CreateUser = z.infer<typeof CreateUserSchema>;
 export type UpdateUser = z.infer<typeof UpdateUserSchema>;
 export type LoginRequest = z.infer<typeof LoginSchema>;
