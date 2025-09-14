@@ -15,6 +15,13 @@
     "!src/tests/**",
     "!src/index.ts"
   ],
+  "testPathIgnorePatterns": [
+    "/node_modules/",
+    "/dist/"
+  ],
+  "transformIgnorePatterns": [
+    "node_modules/(?!(.*\\.mjs$))"
+  ],
   "coverageDirectory": "coverage",
   "coverageReporters": [
     "text",
@@ -22,8 +29,9 @@
     "html"
   ],
   "setupFilesAfterEnv": ["<rootDir>/src/tests/setup.ts"],
-  "moduleNameMapping": {
+  "moduleNameMapper": {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^@shared$": "<rootDir>/../../packages/shared/src/index.ts",
     "^@shared/(.*)$": "<rootDir>/../../packages/shared/src/$1"
   }
 }

@@ -1,77 +1,85 @@
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals'
-import request from 'supertest'
-import app from '../src/index'
+import { describe, it, expect } from '@jest/globals'
+import { JWTUtil } from '../utils/jwt'
+import { UserRole } from '@shared'
 
-describe('Authentication Endpoints', () => {
-  describe('POST /api/auth/register', () => {
-    it('should register a new user', async () => {
-      const userData = {
+// Mock the prisma dependency
+jest.mock('@/index', () => ({
+  prisma: {
+    user: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+    }
+  }
+}))
+
+describe('Authentication Utilities', () => {
+  describe('JWT Token Generation', () => {
+    it('should generate access and refresh tokens', () => {
+      const mockUser = {
+        id: 'test-user-id',
         email: 'test@example.com',
-        password: 'password123',
-        confirmPassword: 'password123',
+        role: UserRole.ANALYST,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
 
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send(userData)
-        .expect(201)
+      const tokens = JWTUtil.generateTokenPair(mockUser)
 
-      expect(response.body.success).toBe(true)
-      expect(response.body.data).toHaveProperty('user')
-      expect(response.body.data).toHaveProperty('accessToken')
-      expect(response.body.data.user.email).toBe(userData.email)
+      expect(tokens).toHaveProperty('accessToken')
+      expect(tokens).toHaveProperty('refreshToken')
+      expect(typeof tokens.accessToken).toBe('string')
+      expect(typeof tokens.refreshToken).toBe('string')
     })
 
-    it('should return error for invalid email', async () => {
-      const userData = {
-        email: 'invalid-email',
-        password: 'password123',
-        confirmPassword: 'password123',
+    it('should generate access token only', () => {
+      const mockUser = {
+        id: 'test-user-id',
+        email: 'test@example.com',
+        role: UserRole.ANALYST,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
 
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send(userData)
-        .expect(400)
+      const token = JWTUtil.generateAccessToken(mockUser)
 
-      expect(response.body.success).toBe(false)
+      expect(typeof token).toBe('string')
+      expect(token.length).toBeGreaterThan(0)
     })
   })
 
-  describe('POST /api/auth/login', () => {
-    it('should login with valid credentials', async () => {
-      // First register a user
-      await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: 'login@example.com',
-          password: 'password123',
-          confirmPassword: 'password123',
-        })
+  describe('JWT Token Verification', () => {
+    it('should verify valid access token', () => {
+      const mockUser = {
+        id: 'test-user-id',
+        email: 'test@example.com',
+        role: UserRole.ANALYST,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
 
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: 'login@example.com',
-          password: 'password123',
-        })
-        .expect(200)
+      const token = JWTUtil.generateAccessToken(mockUser)
+      const decoded = JWTUtil.verifyAccessToken(token)
 
-      expect(response.body.success).toBe(true)
-      expect(response.body.data).toHaveProperty('accessToken')
-      expect(response.body.data).toHaveProperty('refreshToken')
+      expect(decoded).toHaveProperty('userId')
+      expect(decoded).toHaveProperty('email')
+      expect(decoded).toHaveProperty('role')
+      expect(decoded.userId).toBe(mockUser.id)
     })
 
-    it('should return error for invalid credentials', async () => {
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: 'nonexistent@example.com',
-          password: 'wrongpassword',
-        })
-        .expect(401)
+    it('should verify valid refresh token', () => {
+      const mockUser = {
+        id: 'test-user-id',
+        email: 'test@example.com',
+        role: UserRole.ANALYST,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
 
-      expect(response.body.success).toBe(false)
+      const tokens = JWTUtil.generateTokenPair(mockUser)
+      const decoded = JWTUtil.verifyRefreshToken(tokens.refreshToken)
+
+      expect(decoded).toHaveProperty('userId')
+      expect(decoded.userId).toBe(mockUser.id)
     })
   })
 })

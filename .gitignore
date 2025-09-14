@@ -10,6 +10,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # Build outputs
 dist/
@@ -93,17 +94,84 @@ Thumbs.db
 uploads/
 temp/
 tmp/
+# AI service cache
+.ai-cache/
+# Document processing cache
+.doc-cache/
+# Vector embeddings cache
+.embeddings-cache/
+# Google Gemini API cache
+.gemini-cache/
+# OpenAI API cache
+.openai-cache/
 
-# Prisma
+# Database & ORM
 prisma/migrations/dev.db*
+# Drizzle ORM
+drizzle/
+.drizzle/
+migrations/
+*.db-journal
 
 # Testing
 coverage/
 .nyc_output/
+# Test results and reports
+test-results/
+junit.xml
+*.lcov
+# Jest cache
+.jest/
+# Vitest cache
+.vitest/
+# Test screenshots and videos
+screenshots/
+videos/
+# Test fixtures and mocks
+__tests__/fixtures/
+__mocks__/local/
+# Test database
+test.db
+test.sqlite
+*.test.db
+# Playwright
+playwright-report/
+test-results/
+playwright/.cache/
+# TestSprite specific
+testsprite_tests/tmp/
+testsprite_tests/**/*.tmp
+testsprite_tests/**/config.json
+testsprite_tests/**/tunnel_*.log
+# TestSprite generated files (keep reports but exclude temp)
+!testsprite_tests/*.md
+!testsprite_tests/*.html
+!testsprite_tests/*.json
+!testsprite_tests/final-test-resolution-report.md
+# Additional testing tools
+.testsprite/
+.mcp-cache/
+# Load testing results
+load-test-results/
+# Security scan reports
+security-reports/
+*.sarif
 
 # Production files
 *.tgz
 *.tar.gz
+# Docker volumes
+docker-volumes/
+# SSL certificates
+*.pem
+*.crt
+*.key
+ssl/
+# Docker build cache
+.docker-cache/
+# Container logs
+docker-logs/
+*.container.log
 
 # Storybook build outputs
 storybook-static/
@@ -111,6 +179,25 @@ storybook-static/
 # Temporary folders
 .tmp/
 .temp/
+# Package manager locks (keep package-lock.json but ignore others)
+yarn.lock
+pnpm-lock.yaml
+# Workspace specific
+.pnp.*
+.yarn/
+# Node.js debugging
+nohup.out
+.node-version
+# npm/yarn debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Local development
 .local/
+# TypeScript build info
+*.tsbuildinfo
+# ESLint cache
+.eslintcache
+# Turbo build cache
+.turbo/
