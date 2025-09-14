@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response, NextFunction, RequestHandler } from 'express'
 import { JWTUtil } from '@/utils/jwt'
 import { prisma } from '@/index'
 import { AppError } from '@/middleware/errorHandler'
-import { UserRole } from '@shared'
+import { UserRole } from '@/shared'
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -12,8 +12,15 @@ export interface AuthenticatedRequest extends Request {
   }
 }
 
-export const authMiddleware = async (
-  req: AuthenticatedRequest,
+// Type-safe wrapper for authenticated routes
+export const withAuth = (handler: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>): RequestHandler => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    await handler(req as AuthenticatedRequest, res, next)
+  }
+}
+
+export const authMiddleware: RequestHandler = async (
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -47,8 +54,12 @@ export const authMiddleware = async (
       throw new AppError('User not found', 401, 'USER_NOT_FOUND')
     }
 
-    // Attach user to request
-    req.user = user
+    // Attach user to request with type assertion
+    ;(req as AuthenticatedRequest).user = {
+      id: user.id,
+      email: user.email,
+      role: user.role as UserRole
+    }
     next()
   } catch (error) {
     if (error instanceof AppError) {
@@ -59,13 +70,14 @@ export const authMiddleware = async (
   }
 }
 
-export const requireRole = (roles: UserRole[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
+export const requireRole = (roles: UserRole[]): RequestHandler => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const authReq = req as AuthenticatedRequest
+    if (!authReq.user) {
       return next(new AppError('Authentication required', 401, 'AUTH_REQUIRED'))
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(authReq.user.role)) {
       return next(new AppError('Insufficient permissions', 403, 'INSUFFICIENT_PERMISSIONS'))
     }
 
@@ -73,13 +85,14 @@ export const requireRole = (roles: UserRole[]) => {
   }
 }
 
-export const requireWorkspaceAccess = async (
-  req: AuthenticatedRequest,
+export const requireWorkspaceAccess: RequestHandler = async (
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    if (!req.user) {
+    const authReq = req as AuthenticatedRequest
+    if (!authReq.user) {
       throw new AppError('Authentication required', 401, 'AUTH_REQUIRED')
     }
 
@@ -94,12 +107,12 @@ export const requireWorkspaceAccess = async (
       where: {
         workspaceId_userId: {
           workspaceId: workspaceId as string,
-          userId: req.user.id,
+          userId: authReq.user.id,
         },
       },
     })
 
-    if (!workspaceMember && req.user.role !== UserRole.ADMIN) {
+    if (!workspaceMember && authReq.user.role !== UserRole.ADMIN) {
       throw new AppError('Access denied to workspace', 403, 'WORKSPACE_ACCESS_DENIED')
     }
 

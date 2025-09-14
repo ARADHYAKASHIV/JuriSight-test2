@@ -1,3 +1,5 @@
+import animate from "tailwindcss-animate";
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
@@ -6,6 +8,46 @@ export default {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
+  ],
+  safelist: [
+    // Legal color variants
+    'bg-legal-blue',
+    'bg-legal-navy', 
+    'bg-legal-gold',
+    'bg-legal-silver',
+    'text-legal-blue',
+    'text-legal-navy',
+    'text-legal-gold', 
+    'text-legal-gold-foreground',
+    'text-legal-silver',
+    'border-legal-blue',
+    'border-legal-navy',
+    'border-legal-gold',
+    'hover:bg-legal-navy',
+    'hover:bg-legal-gold/80',
+    'hover:text-legal-blue',
+    'hover:text-legal-navy',
+    'hover:border-legal-blue',
+    // Legal color with opacity
+    'bg-legal-blue/5',
+    'bg-legal-blue/10',
+    'bg-legal-blue/20',
+    'bg-legal-navy/5',
+    'bg-legal-navy/10',
+    'bg-legal-gold/10',
+    'border-legal-blue/20',
+    'from-legal-blue/5',
+    'to-legal-navy/5',
+    'to-legal-navy/10',
+    'group-hover:bg-legal-blue/20',
+    'group-hover:text-legal-blue',
+    // Animation classes
+    'animate-fade-in',
+    'animate-slide-up',
+    'animate-scale-in',
+    'animate-fade-in-up',
+    'hover-lift',
+    'card-hover'
   ],
   prefix: "",
   theme: {
@@ -51,6 +93,17 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+        },
+        legal: {
+          gold: "hsl(var(--legal-gold))",
+          "gold-foreground": "hsl(var(--legal-gold-foreground))",
+          blue: "hsl(var(--legal-blue))",
+          navy: "hsl(var(--legal-navy))",
+          silver: "hsl(var(--legal-silver))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -86,6 +139,14 @@ export default {
           "0%": { transform: "translateX(100%)" },
           "100%": { transform: "translateX(0)" },
         },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 5px hsl(var(--primary) / 0.5)" },
+          "50%": { boxShadow: "0 0 20px hsl(var(--primary) / 0.8), 0 0 30px hsl(var(--primary) / 0.6)" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -95,12 +156,27 @@ export default {
         "slide-in-from-bottom": "slide-in-from-bottom 0.3s ease-out",
         "slide-in-from-left": "slide-in-from-left 0.3s ease-out",
         "slide-in-from-right": "slide-in-from-right 0.3s ease-out",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "float": "float 3s ease-in-out infinite",
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui"],
-        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+        display: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1rem' }],
+        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
+        'base': ['1rem', { lineHeight: '1.5rem' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+        '5xl': ['3rem', { lineHeight: '1' }],
+        '6xl': ['3.75rem', { lineHeight: '1' }],
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 }

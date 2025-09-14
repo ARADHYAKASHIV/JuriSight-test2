@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import compression from 'compression'
 import rateLimit from 'express-rate-limit'
 import { config } from 'dotenv'
+import path from 'path'
 import { PrismaClient } from '@prisma/client'
 import { createClient } from 'redis'
 
@@ -18,8 +19,8 @@ import comparisonRoutes from '@/routes/comparisonRoutes'
 import analyticsRoutes from '@/routes/analyticsRoutes'
 import { logger } from '@/utils/logger'
 
-// Load environment variables
-config()
+// Load environment variables from root .env file
+config({ path: '../../.env' })
 
 // Initialize clients
 export const prisma = new PrismaClient({
@@ -96,6 +97,32 @@ app.use('/api/documents', authMiddleware, documentRoutes)
 app.use('/api/chat', authMiddleware, chatRoutes)
 app.use('/api/comparisons', authMiddleware, comparisonRoutes)
 app.use('/api/analytics', authMiddleware, analyticsRoutes)
+
+// Root route handler
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'JuriSight API Server',
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    userAgent: req.get('User-Agent'),
+    origin: req.get('Origin'),
+    referer: req.get('Referer')
+  })
+})
+
+// Root POST handler - handle POST requests to /
+app.post('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'JuriSight API Server - POST endpoint',
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+    note: 'This endpoint accepts POST requests but may not be the intended API endpoint'
+  })
+})
 
 // 404 handler
 app.use('*', (req, res) => {

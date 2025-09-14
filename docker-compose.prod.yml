@@ -1,93 +1,74 @@
 version: '3.8'
 
 services:
-  # Nginx reverse proxy and load balancer
-  nginx:
-    image: nginx:alpine
-    container_name: jurisight-nginx-prod
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: jurisight-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    ports:
+      - "3001:3001"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      - redis
+    networks:
+      - jurisight-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: jurisight-frontend
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - backend
-      - frontend
     networks:
       - jurisight-network
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # PostgreSQL database with pgvector extension
-  postgres:
-    image: pgvector/pgvector:pg15
-    container_name: jurisight-postgres-prod
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-jurisight}
-      POSTGRES_USER: ${POSTGRES_USER:-jurisight_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
-      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    networks:
-      - jurisight-network
-    restart: unless-stopped
-
-  # Redis for caching and session storage
   redis:
     image: redis:7-alpine
-    container_name: jurisight-redis-prod
+    container_name: jurisight-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
     volumes:
-      - redis_data_prod:/data
+      - redis-data:/data
     networks:
       - jurisight-network
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-
-  # Backend API service
-  backend:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.backend.prod
-    container_name: jurisight-backend-prod
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-jurisight_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-jurisight}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      PORT: 3001
-    volumes:
-      - uploads_prod:/app/uploads
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - jurisight-network
-    restart: unless-stopped
-
-  # Frontend React application
-  frontend:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.frontend.prod
-      args:
-        VITE_API_URL: ${VITE_API_URL:-/api}
-    container_name: jurisight-frontend-prod
-    depends_on:
-      - backend
-    networks:
-      - jurisight-network
-    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
-  postgres_data_prod:
+  uploads:
     driver: local
-  redis_data_prod:
-    driver: local
-  uploads_prod:
+  redis-data:
     driver: local
 
 networks:

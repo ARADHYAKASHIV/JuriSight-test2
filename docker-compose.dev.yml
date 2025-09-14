@@ -37,10 +37,10 @@ services:
     container_name: jurisight-backend-dev
     environment:
       NODE_ENV: development
-      DATABASE_URL: postgresql://jurisight_user:dev_password@postgres:5432/jurisight_dev
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev-jwt-secret-change-in-production
-      JWT_REFRESH_SECRET: dev-jwt-refresh-secret-change-in-production
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       PORT: 3001

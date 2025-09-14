@@ -21,7 +21,7 @@ import {
   PaginationParams,
   FilterParams,
   SortParams
-} from '@shared'
+} from '@/shared'
 
 class ApiClient {
   private client: AxiosInstance

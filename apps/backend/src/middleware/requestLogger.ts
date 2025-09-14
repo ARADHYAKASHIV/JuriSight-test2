@@ -5,31 +5,16 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
   const start = Date.now()
   
   // Log request
-  logger.info({
-    type: 'request',
-    method: req.method,
-    url: req.url,
-    ip: req.ip,
-    userAgent: req.get('User-Agent'),
-    timestamp: new Date().toISOString(),
-  })
+  logger.info(`${req.method} ${req.url} - ${req.ip}`)
 
   // Override res.end to log response
   const originalEnd = res.end
-  res.end = function(chunk?: any, encoding?: any, cb?: any) {
+  res.end = function(chunk?: any, encoding?: any, cb?: any): Response {
     const duration = Date.now() - start
     
-    logger.info({
-      type: 'response',
-      method: req.method,
-      url: req.url,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      ip: req.ip,
-      timestamp: new Date().toISOString(),
-    })
+    logger.info(`${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`)
 
-    originalEnd.call(this, chunk, encoding, cb)
+    return originalEnd.call(this, chunk, encoding, cb) as Response
   }
 
   next()

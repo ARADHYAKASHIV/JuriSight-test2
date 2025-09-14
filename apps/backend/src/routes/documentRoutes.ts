@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import multer from 'multer'
 import { body, query, validationResult } from 'express-validator'
 import { DocumentService } from '@/services/DocumentService'
@@ -38,7 +38,8 @@ router.get('/', [
   query('workspaceId').optional().isString(),
   query('sortBy').optional().isIn(['createdAt', 'updatedAt', 'title', 'category']),
   query('sortOrder').optional().isIn(['asc', 'desc']),
-], async (req: AuthenticatedRequest, res, next) => {
+], authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+  const authReq = req as AuthenticatedRequest
   try {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -56,8 +57,8 @@ router.get('/', [
     } = req.query
 
     const result = await documentService.getDocuments({
-      userId: req.user!.id,
-      userRole: req.user!.role,
+      userId: authReq.user!.id,
+      userRole: authReq.user!.role,
       page: parseInt(page as string),
       limit: parseInt(limit as string),
       search: search as string,
@@ -88,7 +89,8 @@ router.post('/', upload.single('file'), [
   body('title').optional().isString().trim(),
   body('category').optional().isIn(Object.values(DocumentCategory)),
   body('tags').optional().isArray(),
-], async (req: AuthenticatedRequest, res, next) => {
+], authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+  const authReq = req as AuthenticatedRequest
   try {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -114,7 +116,7 @@ router.post('/', upload.single('file'), [
     const result = await documentService.uploadDocument({
       file: req.file,
       documentData,
-      userId: req.user!.id,
+      userId: authReq.user!.id,
     })
 
     res.status(201).json({

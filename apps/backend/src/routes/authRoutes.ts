@@ -1,11 +1,11 @@
-import { Router } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
 import { body, validationResult } from 'express-validator'
 import { prisma } from '@/index'
 import { JWTUtil } from '@/utils/jwt'
 import { AppError } from '@/middleware/errorHandler'
 import { authMiddleware, AuthenticatedRequest } from '@/middleware/authMiddleware'
-import { LoginSchema, RegisterSchema, UserRole } from '@shared'
+import { LoginSchema, RegisterSchema, UserRole, UserActivityType } from '@/shared'
 
 const router = Router()
 
@@ -27,7 +27,7 @@ const validateRegister = [
 ]
 
 // Login endpoint
-router.post('/login', validateLogin, async (req, res, next) => {
+router.post('/login', validateLogin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -52,7 +52,11 @@ router.post('/login', validateLogin, async (req, res, next) => {
     }
 
     // Generate tokens
-    const { accessToken, refreshToken } = JWTUtil.generateTokenPair(user)
+    const { accessToken, refreshToken } = JWTUtil.generateTokenPair({
+      id: user.id,
+      email: user.email,
+      role: user.role as string
+    })
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user
@@ -71,7 +75,7 @@ router.post('/login', validateLogin, async (req, res, next) => {
 })
 
 // Register endpoint
-router.post('/register', validateRegister, async (req, res, next) => {
+router.post('/register', validateRegister, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -102,7 +106,11 @@ router.post('/register', validateRegister, async (req, res, next) => {
     })
 
     // Generate tokens
-    const { accessToken, refreshToken } = JWTUtil.generateTokenPair(user)
+    const { accessToken, refreshToken } = JWTUtil.generateTokenPair({
+      id: user.id,
+      email: user.email,
+      role: user.role as string
+    })
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user
@@ -121,7 +129,7 @@ router.post('/register', validateRegister, async (req, res, next) => {
 })
 
 // Refresh token endpoint
-router.post('/refresh', async (req, res, next) => {
+router.post('/refresh', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { refreshToken } = req.body
 
@@ -142,7 +150,11 @@ router.post('/refresh', async (req, res, next) => {
     }
 
     // Generate new access token
-    const newAccessToken = JWTUtil.generateAccessToken(user)
+    const newAccessToken = JWTUtil.generateAccessToken({
+      id: user.id,
+      email: user.email,
+      role: user.role as string
+    })
 
     res.status(200).json({
       success: true,
@@ -156,7 +168,8 @@ router.post('/refresh', async (req, res, next) => {
 })
 
 // Get current user profile
-router.get('/profile', authMiddleware, async (req: AuthenticatedRequest, res, next) => {
+router.get('/profile', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+  const authReq = req as AuthenticatedRequest
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
@@ -187,7 +200,8 @@ router.get('/profile', authMiddleware, async (req: AuthenticatedRequest, res, ne
 router.put('/profile', authMiddleware, [
   body('email').optional().isEmail().normalizeEmail(),
   body('preferences').optional().isObject(),
-], async (req: AuthenticatedRequest, res, next) => {
+], async (req: Request, res: Response, next: NextFunction) => {
+  const authReq = req as AuthenticatedRequest
   try {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -202,7 +216,7 @@ router.put('/profile', authMiddleware, [
       const existingUser = await prisma.user.findFirst({
         where: {
           email,
-          id: { not: req.user!.id },
+          id: { not: authReq.user!.id },
         },
       })
 
@@ -240,13 +254,14 @@ router.put('/profile', authMiddleware, [
 })
 
 // Logout endpoint (optional - client should remove tokens)
-router.post('/logout', authMiddleware, async (req: AuthenticatedRequest, res, next) => {
+router.post('/logout', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+  const authReq = req as AuthenticatedRequest
   try {
     // Log user activity
     await prisma.userActivity.create({
       data: {
-        userId: req.user!.id,
-        type: 'LOGOUT',
+        userId: authReq.user!.id,
+        type: UserActivityType.LOGOUT,
         metadata: {
           timestamp: new Date().toISOString(),
           ip: req.ip,

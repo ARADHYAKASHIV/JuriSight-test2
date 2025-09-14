@@ -25,12 +25,12 @@ npm install
 
 # Setup environment files
 echo "⚙️ Setting up environment configuration..."
-if [ ! -f "apps/backend/.env" ]; then
-    cp .env.example apps/backend/.env
-    echo "✅ Created apps/backend/.env from template"
-    echo "📝 Please edit apps/backend/.env with your configuration"
+if [ ! -f ".env" ]; then
+    cp .env.example .env
+    echo "✅ Created .env from template"
+    echo "📝 Please edit .env with your configuration"
 else
-    echo "✅ apps/backend/.env already exists"
+    echo "✅ .env already exists"
 fi
 
 # Build shared package

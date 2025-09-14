@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import { User } from '@shared'
+import { User } from '@/shared'
 
 export interface JWTPayload {
   userId: string
@@ -15,7 +15,7 @@ export class JWTUtil {
   private static readonly ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m'
   private static readonly REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d'
 
-  static generateAccessToken(user: Omit<User, 'password'>): string {
+  static generateAccessToken(user: { id: string; email: string; role: string }): string {
     const payload: JWTPayload = {
       userId: user.id,
       email: user.email,
@@ -27,7 +27,7 @@ export class JWTUtil {
     } as jwt.SignOptions)
   }
 
-  static generateRefreshToken(user: Omit<User, 'password'>): string {
+  static generateRefreshToken(user: { id: string; email: string; role: string }): string {
     const payload: JWTPayload = {
       userId: user.id,
       email: user.email,
@@ -55,7 +55,7 @@ export class JWTUtil {
     }
   }
 
-  static generateTokenPair(user: Omit<User, 'password'>) {
+  static generateTokenPair(user: { id: string; email: string; role: string }) {
     return {
       accessToken: this.generateAccessToken(user),
       refreshToken: this.generateRefreshToken(user),

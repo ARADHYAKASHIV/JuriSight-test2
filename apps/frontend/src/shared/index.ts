@@ -230,6 +230,7 @@ export const AnalyticsMetricsSchema = z.object({
 
 // ===== TYPE EXPORTS =====
 export type User = z.infer<typeof UserSchema>;
+export type PublicUser = Omit<User, 'password'>;
 export type CreateUser = z.infer<typeof CreateUserSchema>;
 export type UpdateUser = z.infer<typeof UpdateUserSchema>;
 export type LoginRequest = z.infer<typeof LoginSchema>;
@@ -271,7 +272,7 @@ export interface ApiResponse<T = any> {
 }
 
 export interface AuthResponse {
-  user: Omit<User, 'password'>;
+  user: PublicUser;
   accessToken: string;
   refreshToken: string;
 }

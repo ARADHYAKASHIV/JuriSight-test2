@@ -4,8 +4,8 @@ import { createClient } from 'redis'
 import dotenv from 'dotenv'
 import path from 'path'
 
-// Load test environment variables
-dotenv.config({ path: path.resolve(__dirname, '../../test.env') })
+// Load test environment variables from root .env file
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') })
 
 const prisma = new PrismaClient()
 const redis = createClient()

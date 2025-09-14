@@ -1,7 +1,7 @@
-import { Router } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import { body, query, validationResult } from 'express-validator'
 import { prisma } from '@/index'
-import { authMiddleware, AuthenticatedRequest, requireRole } from '@/middleware/authMiddleware'
+import { authMiddleware, AuthenticatedRequest } from '@/middleware/authMiddleware'
 import { AppError } from '@/middleware/errorHandler'
 import { CreateWorkspaceSchema, UpdateWorkspaceSchema, UserRole, WorkspaceMemberRole } from '@shared'
 
@@ -11,8 +11,9 @@ const router = Router()
 router.get('/', [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
-], async (req: AuthenticatedRequest, res, next) => {
+], authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const authReq = req as AuthenticatedRequest
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
       throw new AppError('Validation failed', 400, 'VALIDATION_ERROR', errors.array())
@@ -21,12 +22,12 @@ router.get('/', [
     const { page = 1, limit = 20 } = req.query
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string)
 
-    const whereClause = req.user!.role === UserRole.ADMIN 
+    const whereClause = authReq.user!.role === UserRole.ADMIN 
       ? {} 
       : {
           members: {
             some: {
-              userId: req.user!.id,
+              userId: authReq.user!.id,
             },
           },
         }
@@ -84,8 +85,9 @@ router.get('/', [
 router.post('/', [
   body('name').isString().trim().isLength({ min: 1, max: 100 }),
   body('settings').optional().isObject(),
-], async (req: AuthenticatedRequest, res, next) => {
+], authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const authReq = req as AuthenticatedRequest
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
       throw new AppError('Validation failed', 400, 'VALIDATION_ERROR', errors.array())
@@ -96,11 +98,11 @@ router.post('/', [
     const workspace = await prisma.workspace.create({
       data: {
         name: workspaceData.name,
-        ownerId: req.user!.id,
+        ownerId: authReq.user!.id,
         settings: workspaceData.settings,
         members: {
           create: {
-            userId: req.user!.id,
+            userId: authReq.user!.id,
             role: WorkspaceMemberRole.OWNER,
             permissions: {
               canUpload: true,
@@ -149,16 +151,17 @@ router.post('/', [
 })
 
 // Get workspace by ID
-router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
+router.get('/:id', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const authReq = req as AuthenticatedRequest
     const workspaceId = req.params.id
     
     const whereClause: any = { id: workspaceId }
     
-    if (req.user!.role !== UserRole.ADMIN) {
+    if (authReq.user!.role !== UserRole.ADMIN) {
       whereClause.members = {
         some: {
-          userId: req.user!.id,
+          userId: authReq.user!.id,
         },
       }
     }
@@ -210,8 +213,9 @@ router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
 router.put('/:id', [
   body('name').optional().isString().trim().isLength({ min: 1, max: 100 }),
   body('settings').optional().isObject(),
-], async (req: AuthenticatedRequest, res, next) => {
+], authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const authReq = req as AuthenticatedRequest
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
       throw new AppError('Validation failed', 400, 'VALIDATION_ERROR', errors.array())
@@ -220,16 +224,16 @@ router.put('/:id', [
     const workspaceId = req.params.id
     const updateData = UpdateWorkspaceSchema.parse(req.body)
 
-    // Check if user can update workspace
+    // Check if user can update this workspace
     const workspace = await prisma.workspace.findFirst({
       where: {
         id: workspaceId,
         OR: [
-          { ownerId: req.user!.id },
-          {
+          { ownerId: authReq.user!.id },
+          { 
             members: {
               some: {
-                userId: req.user!.id,
+                userId: authReq.user!.id,
                 role: { in: [WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN] },
               },
             },
@@ -238,8 +242,8 @@ router.put('/:id', [
       },
     })
 
-    if (!workspace && req.user!.role !== UserRole.ADMIN) {
-      throw new AppError('Workspace not found or insufficient permissions', 404, 'WORKSPACE_NOT_FOUND')
+    if (!workspace && authReq.user!.role !== UserRole.ADMIN) {
+      throw new AppError('Access denied', 403, 'ACCESS_DENIED')
     }
 
     const updatedWorkspace = await prisma.workspace.update({
@@ -281,20 +285,21 @@ router.put('/:id', [
 })
 
 // Delete workspace
-router.delete('/:id', async (req: AuthenticatedRequest, res, next) => {
+router.delete('/:id', authMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const authReq = req as AuthenticatedRequest
     const workspaceId = req.params.id
 
-    // Check if user is owner or admin
+    // Check if user can delete this workspace
     const workspace = await prisma.workspace.findFirst({
       where: {
         id: workspaceId,
-        ownerId: req.user!.id,
+        ownerId: authReq.user!.id,
       },
     })
 
-    if (!workspace && req.user!.role !== UserRole.ADMIN) {
-      throw new AppError('Workspace not found or insufficient permissions', 404, 'WORKSPACE_NOT_FOUND')
+    if (!workspace && authReq.user!.role !== UserRole.ADMIN) {
+      throw new AppError('Access denied', 403, 'ACCESS_DENIED')
     }
 
     await prisma.workspace.delete({
